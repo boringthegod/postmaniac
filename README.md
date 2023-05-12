@@ -51,7 +51,7 @@ All the interesting information (whether in the environment values of the Postma
 
 ## Demo
 
-![](assets/demog.gif)
+![](https://github.com/boringthegod/postmaniac/blob/master/assets/demo.gif)
 
 # Details
 
