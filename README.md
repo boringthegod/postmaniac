@@ -12,7 +12,7 @@ Bonus:
 
 - No need to be authenticated
 
-- No API blocking / rate-limit
+- No API blocking / No rate-limit
 
 # Requirements
 
@@ -20,15 +20,21 @@ Bonus:
 
 # Installation
 
-```console
+### With PyPI
+
+`pip3 install postmaniac`
+
+### With Github
+
+```bash
 # clone the repo
 $ git clone https://github.com/boringthegod/postmaniac.git
 
 # change the working directory to postmaniac
 $ cd postmaniac
 
-# install the requirements
-$ python3 -m pip install -r requirements.txt
+# install postmaniac
+$ python3 setup.py install
 ```
 
 # Usage
@@ -36,7 +42,7 @@ $ python3 -m pip install -r requirements.txt
 postmaniac can be run from the CLI and rapidly embedded within existing python applications.
 
 ```bash
-usage: postmaniac.py [-h] query
+usage: postmaniac [-h] query
 
 Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces
 
