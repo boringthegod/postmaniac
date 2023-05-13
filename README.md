@@ -37,6 +37,18 @@ $ cd postmaniac
 $ python3 setup.py install
 ```
 
+### With Docker
+
+You can pull the Docker image with:
+
+```bash
+docker pull ghcr.io/boringthegod/postmaniac:latest
+```
+
+And then launch the tool **by not forgetting to specify your volume** to be able to read the file scan.txt written in output
+
+`docker run -v scan:/output ghcr.io/boringthegod/postmaniac query`
+
 # Usage
 
 postmaniac can be run from the CLI and rapidly embedded within existing python applications.
