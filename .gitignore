@@ -1,0 +1,6 @@
+.DS_Store
+build/
+dist/
+__pycache__/
+postmaniac.egg-info/
+scan.txt
