@@ -90,6 +90,10 @@ urls = list(set(urls))
 urlsteam = list(set(urlsteam))
 # Affiche la liste des URLs
 
+for lien in urls:
+    if "/workspace/" not in lien or "https://www.postman.com//" in lien:
+        urls.remove(lien)
+
 
 nombreworkspace = len(urls)
 nombreteam = len(urlsteam)
