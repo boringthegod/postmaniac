@@ -24,6 +24,10 @@ Bonus:
 
 `pip3 install postmaniac`
 
+If you have already installed Postmaniac with PyPI but want to get new features or fixes in the future :
+
+`python3 -m pip install --upgrade postmaniac`
+
 ### With Github
 
 ```bash
