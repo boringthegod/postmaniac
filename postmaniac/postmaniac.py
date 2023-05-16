@@ -135,6 +135,8 @@ def main():
         print(']', end='')
 
     for o, worku in enumerate(urls, start=1):
+        if "https://www.postman.com//" in worku:
+            continue
         message = f'Scan du workspace {o}/{len(urls)}'
         progress_bar(40, message)
         workurlcompl = worku + "overview"
