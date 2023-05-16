@@ -24,10 +24,6 @@ Bonus:
 
 `pip3 install postmaniac`
 
-If you have already installed Postmaniac with PyPI but want to get new features or fixes in the future :
-
-`python3 -m pip install --upgrade postmaniac`
-
 ### With Github
 
 ```bash
@@ -58,12 +54,13 @@ And then launch the tool **by not forgetting to specify your volume** to be able
 postmaniac can be run from the CLI and rapidly embedded within existing python applications.
 
 ```bash
-usage: postmaniac [-h] query
+usage: postmaniac.py [-h] query path
 
 Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces
 
 positional arguments:
   query       name of the target (example: tesla)
+  path        path of the scan.txt outpul file (example: /home/yourUser/reports/myscan.txt or ./scan.txt)
 
 options:
   -h, --help  show this help message and exit
