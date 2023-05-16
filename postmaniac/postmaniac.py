@@ -262,6 +262,8 @@ def main():
             urlsubord = "https://www.postman.com/_api/folder/" + owner + "-" + orde
             responsesub = requests.get(urlsubord, headers=headers)
             subcollection = responsesub.json()
+            if 'error' in subcollection:
+                continue
             suborder = subcollection['data']['order']
             subsubfolders = subcollection['data']['folders_order']
             if len(subsubfolders) != 0:
@@ -304,6 +306,7 @@ def main():
         for request in order:
             urlrequestfull = urlrequest + owner + "-" + request
             requestresponse = requests.get(urlrequestfull, headers=headers)
+
             requestresp = requestresponse.json()
             urlreq = requestresp['data']['url']
             auth = requestresp['data']['auth']
@@ -340,7 +343,8 @@ def main():
                         pass
                 except json.JSONDecodeError as e:
                     continue
-            if datamode == "params" and len(requestresp['data']["data"]) > 0:
+            if datamode == "params" and requestresp['data']['data'] is not None and len(
+                    requestresp['data']["data"]) > 0:
 
                 datas = requestresp['data']["data"]
                 for nom in datas:
