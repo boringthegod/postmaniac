@@ -157,6 +157,9 @@ def main():
 
         iddiv = responseid.json()
 
+        if 'error' in iddiv:
+            continue
+
         idwork = iddiv['data'][0]['id']
 
         # Taper sur le workspace avec l'id pour decouvrir les collections et environnements

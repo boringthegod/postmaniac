@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "postmaniac"
-version = "0.9.2"
+version = "0.9.3"
 description = "Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces."
 readme = "README.md"
 requires-python = ">=3.0"
