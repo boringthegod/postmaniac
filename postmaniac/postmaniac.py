@@ -16,11 +16,15 @@ def main():
     # ajout d'un argument 'query' pour spécifier le mot à chercher
     parser.add_argument('query', type=str,
                         help='name of the target (example: tesla)')
+    
+    # ajout d'un argument 'output' pour spécifier la destination du fichier scan.txt
+    parser.add_argument('path', type=str,
+                        help='path of the scan.txt outpul file (example: /home/yourUser/reports/myscan.txt or ./scan.txt)')
 
     # parse les arguments de ligne de commande
     args = parser.parse_args()
 
-    with open("scan.txt", "w") as f:
+    with open(args.path, "w") as f:
         f.write("Rapport du scan de " + f"{args.query}")
         f.write("\n")
         f.write("\n")
@@ -65,7 +69,7 @@ def main():
                     else:
                         chelou = 'https://go.postman.co/workspace/' + item['document']['workspaces'][0][
                             'id'] + '/request/' + item['document']['id']
-                        with open("scan.txt", "a") as f:
+                        with open(args.path, "a") as f:
                             f.write("requete chelou" + chelou)
                         continue
                 else:
@@ -108,7 +112,7 @@ def main():
     print(Fore.BLUE + str(nombreteam) + " Teams trouvées" + Style.RESET_ALL)
     print(urlsteam)
 
-    with open("scan.txt", "a") as f:
+    with open(args.path, "a") as f:
         f.write("Workspaces :")
         f.write("\n")
         for worksp in urls:
@@ -182,7 +186,7 @@ def main():
         else:
             urlcollec = []
 
-        with open("scan.txt", "a") as f:
+        with open(args.path, "a") as f:
             f.write("\n")
             f.write("Sur le workspace :" + workurlcompl)
             f.write("\n")
@@ -191,13 +195,13 @@ def main():
             nombrecollection += 1
             urlcollecfinal = worku + "collection/" + urlc
             listeallcollec.append(urlcollecfinal)
-            with open("scan.txt", "a") as f:
+            with open(args.path, "a") as f:
                 f.write("\n")
                 f.write("Collection " + urlcollecfinal)
 
         urlenvapi = 'https://www.postman.com/_api/environment/'
 
-        with open("scan.txt", "a") as f:
+        with open(args.path, "a") as f:
             f.write("\n")
             f.write("\n")
             f.write("Sur le workspace :" + workurlcompl)
@@ -210,7 +214,7 @@ def main():
             nameenv = environment['data']['name']
             env = environment['data']['values']
             nombreenv += 1
-            with open("scan.txt", "a") as f:
+            with open(args.path, "a") as f:
                 f.write("\n")
                 f.write("Environnement " + nameenv + " : ")
                 f.write("\n")
@@ -385,7 +389,7 @@ def main():
     print(Fore.RED + str(len(bodylistnodoublon)) +
           " valeurs intéressantes en body trouvées" + Style.RESET_ALL)
 
-    with open("scan.txt", "a") as f:
+    with open(args.path, "a") as f:
         f.write("Valeurs d'authentification trouvées :")
         f.write("\n")
         f.write("\n")
