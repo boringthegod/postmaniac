@@ -54,7 +54,7 @@ And then launch the tool **by not forgetting to specify your volume** to be able
 postmaniac can be run from the CLI and rapidly embedded within existing python applications.
 
 ```bash
-usage: postmaniac.py [-h] query path
+usage: postmaniac [-h] query path
 
 Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces
 
