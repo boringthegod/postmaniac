@@ -9,7 +9,7 @@ requirements = [
 
 setup(
     name='postmaniac',
-    version='0.9.0',
+    version='0.9.2',
     packages=find_packages(),
     license='GNU General Public License v3 (GPLv3)',
     license_files=('LICENSE.md'),
