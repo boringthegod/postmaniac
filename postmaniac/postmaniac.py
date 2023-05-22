@@ -128,17 +128,28 @@ def main():
 
     listeallcollec = []
 
-    def progress_bar(n, message=''):
-        print(f'\r{message} [', end='')
-        for o in range(1, n + 1):
-            print('#', end='', flush=True)
-        print(']', end='')
+    def progress_bar(current, total, message=''):
+        """
+        Prints the progress bar in a specified state (current/total)
+        
+        The progress bar is 40 of length.
+        It seems that we can't pass it as a variable because
+        the format string doesnt like it.
+        If the size needs to change, make a for loop.
+        """
+        percent = (current*40)//total
+        print(f"{message} [{'#'*percent:40}]", end='\r')
+        
+        # If the progress bar is finished we get out of the line
+        if current == total:
+            print("\n")
+
 
     for o, worku in enumerate(urls, start=1):
         if "https://www.postman.com//" in worku:
             continue
         message = f'Scan du workspace {o}/{len(urls)}'
-        progress_bar(40, message)
+        progress_bar(o, len(urls), message)
         workurlcompl = worku + "overview"
         match_workspace = re.search(r'https://www.postman.com/([^/]+)/', worku)
         match_workspacename = re.search(r'/workspace/([^/]+)/?$', worku)
@@ -221,7 +232,7 @@ def main():
                 f.write("\n")
                 f.write(str(env))
                 f.write("\n")
-    print('\nTerminé !')
+    print('Terminé !')
 
     print("\n")
     print(Fore.GREEN + str(nombrecollection) +
@@ -244,7 +255,7 @@ def main():
 
     for p, coll in enumerate(listeallcollec, start=1):
         messagescanco = f'Scan de la collection {p}/{len(listeallcollec)}'
-        progress_bar(40, messagescanco)
+        progress_bar(p, len(listeallcollec), messagescanco)
         segments = coll.split('/')
         idseg = segments[-1]
         urltrueapi = 'https://www.postman.com/_api/collection/' + idseg
