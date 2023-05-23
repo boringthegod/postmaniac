@@ -3,9 +3,42 @@ import re
 from colorama import Fore, Back, Style
 import requests
 import argparse
+from stringcolor import *
+
+HORIZONTAL = "#ef5b25"
+VERTICAL = "#ef5b25"
+OTHER = "#10a4da"
+
+VERSION = "0.9.3"
+
+
+def _generate_logo() -> str:
+    # https://patorjk.com/software/taag/#p=display&h=2&f=Small%20Slant&t=postmaniac
+    BORING_URL = f"https://pierreceberio.com/"
+    VERSION_POSITON = 4
+
+    _LOGO = """                      __                        _           
+    ____  ____  _____/ /_____ ___  ____ _____  (_)___ ______
+   / __ \/ __ \/ ___/ __/ __ `__ \/ __ `/ __ \/ / __ `/ ___/
+  / /_/ / /_/ (__  ) /_/ / / / / / /_/ / / / / / /_/ / /__  
+ / .___/\____/____/\__/_/ /_/ /_/\__,_/_/ /_/_/\__,_/\___/  
+/_/                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+    By: boring (https://pierreceberio.com)
+    """
+    _LOGO = _LOGO[:VERSION_POSITON] + \
+        cs(VERSION, OTHER).underline().bold() + \
+        _LOGO[VERSION_POSITON + len(VERSION):]
+
+    for char in "(/|,)⎜\\<`_-⎺":
+        _LOGO = _LOGO.replace(
+            char, str(cs(char, HORIZONTAL if char in "_-⎺" else VERTICAL).bold()))
+    return _LOGO.replace(BORING_URL.replace("/", str(cs("/", VERTICAL).bold())), str(cs(BORING_URL, OTHER).underline()))
 
 
 def main():
+    LOGO = _generate_logo()
+
+    print(LOGO)
     urls = []
     urlsteam = []
 
@@ -131,7 +164,7 @@ def main():
     def progress_bar(current, total, message=''):
         """
         Prints the progress bar in a specified state (current/total)
-        
+
         The progress bar is 40 of length.
         It seems that we can't pass it as a variable because
         the format string doesnt like it.
@@ -139,11 +172,10 @@ def main():
         """
         percent = (current*40)//total
         print(f"{message} [{'#'*percent:40}]", end='\r')
-        
+
         # If the progress bar is finished we get out of the line
         if current == total:
             print("\n")
-
 
     for o, worku in enumerate(urls, start=1):
         if "https://www.postman.com//" in worku:
