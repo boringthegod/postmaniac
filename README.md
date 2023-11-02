@@ -49,6 +49,16 @@ And then launch the tool **by not forgetting to specify your volume** to be able
 
 `docker run -v scan:/output ghcr.io/boringthegod/postmaniac query`
 
+### Manually build Docker
+
+```bash
+docker build -t postmaniac-image .
+```
+
+And then launch the tool **by not forgetting to specify your volume** to be able to read the file scan.txt written in output
+
+`docker run -v scan:/output postmaniac-image query`
+
 # Usage
 
 postmaniac can be run from the CLI and rapidly embedded within existing python applications.
