@@ -1,0 +1,67 @@
+Rapport du scan de flywire
+
+Rapport du scan de flywire
+
+Workspaces :
+https://www.postman.com/ricperry/workspace/isams-public-rest-api-v2/
+https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywire/
+https://www.postman.com/br3hap/workspace/app/
+https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywire
+https://www.postman.com/grey-rocket-450895/workspace/isams/
+
+
+Teams :
+https://www.postman.com/flywire-solutions-apac
+https://www.postman.com/cloudy-astronaut-241912
+
+Sur le workspace :https://www.postman.com/ricperry/workspace/isams-public-rest-api-v2/overview
+
+Collection https://www.postman.com/ricperry/workspace/isams-public-rest-api-v2/collection/31282205-dcbcf595-3bfb-486e-9430-907d6b31b4b2
+
+Sur le workspace :https://www.postman.com/ricperry/workspace/isams-public-rest-api-v2/overview
+Environnement Developer Demo : 
+[{'key': 'baseUrl', 'value': 'https://developerdemo.isams.cloud/', 'enabled': True, 'type': 'default'}]
+
+Sur le workspace :https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywire/overview
+
+Collection https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywire/collection/7864822-09b607a6-fbc5-4e1e-9b51-ae75f6ae61fa
+
+Sur le workspace :https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywire/overview
+Sur le workspace :https://www.postman.com/br3hap/workspace/app/overview
+
+Collection https://www.postman.com/br3hap/workspace/app/collection/27565890-c2666f93-ec57-47f1-bbcc-48e5fcb47fb5
+Collection https://www.postman.com/br3hap/workspace/app/collection/27565890-c4d6d25b-ca96-4457-8d43-114e4ad2905c
+
+Sur le workspace :https://www.postman.com/br3hap/workspace/app/overview
+Environnement nueva_era : 
+[]
+
+Sur le workspace :https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywireoverview
+
+Collection https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywirecollection/7864822-09b607a6-fbc5-4e1e-9b51-ae75f6ae61fa
+
+Sur le workspace :https://www.postman.com/flywire-solutions-apac/workspace/kaplanflywireoverview
+Sur le workspace :https://www.postman.com/grey-rocket-450895/workspace/isams/overview
+
+Collection https://www.postman.com/grey-rocket-450895/workspace/isams/collection/11316634-f50f5c5a-a1e3-4644-a59f-2aacda291967
+
+Sur le workspace :https://www.postman.com/grey-rocket-450895/workspace/isams/overview
+Environnement New Environment : 
+[{'key': 'Aktion', 'value': 'https://pbs-isams.nordanglia.com\n', 'enabled': True, 'type': 'default'}]
+
+Environnement New Environment : 
+[{'key': 'baseUrl', 'value': 'https://pbs-isams.nordanglia.com\n', 'enabled': True, 'type': 'default'}]
+
+Environnement New Environment : 
+[{'key': 'baseUrl', 'value': 'https://pbs-isams.nordanglia.com', 'enabled': True, 'type': 'default'}]
+Valeurs d'authentification trouvées :
+
+[{'type': 'noauth'}, {'oauth2': [], 'type': 'oauth2'}]
+
+Valeurs intéressantes en headers trouvées :
+
+[]
+
+Valeurs intéressantes en body trouvées :
+
+['<string>', 'no-reply@flywire.com', '123 First Ave', 'Allen Street', '001666234567']

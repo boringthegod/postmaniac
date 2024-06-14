@@ -3,13 +3,14 @@ import re
 from colorama import Fore, Back, Style
 import requests
 import argparse
+import random
 from stringcolor import *
 
 HORIZONTAL = "#ef5b25"
 VERTICAL = "#ef5b25"
 OTHER = "#10a4da"
 
-VERSION = "0.9.4"
+VERSION = "0.9.3"
 
 
 def _generate_logo() -> str:
@@ -48,7 +49,7 @@ def main():
 
     # ajout d'un argument 'query' pour spécifier le mot à chercher
     parser.add_argument('query', type=str,
-                        help='name *of the target (example: tesla)')
+                        help='name of the target (example: tesla)')
 
     # parse les arguments de ligne de commande
     args = parser.parse_args()
@@ -62,8 +63,24 @@ def main():
         f.close()
 
     url = 'https://www.postman.com/_api/ws/proxy'
+    # List of user agents
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0',
+        'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36',
+        'Mozilla/5.0 (Linux; Android 11; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36'
+    ]
+    # Choose a random user agent
+    random_user_agent = random.choice(user_agents)
+    
     headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'User-Agent': random_user_agent,
         'Content-Type': 'application/json',
     }
 
@@ -193,8 +210,6 @@ def main():
         worksp = match_workspace.group(1)
         workspnam = match_workspacename.group(1)
 
-        apiurl = 'https://www.postman.com/_api/ws/proxy'
-
         data_rawid = {
             "service": "workspaces",
             "method": "GET",
@@ -202,7 +217,7 @@ def main():
         }
         # Trouver l'id du workspace
 
-        responseid = requests.post(apiurl, headers=headers, json=data_rawid)
+        responseid = requests.post(url, headers=headers, json=data_rawid)
 
         iddiv = responseid.json()
 
@@ -213,15 +228,13 @@ def main():
 
         # Taper sur le workspace avec l'id pour decouvrir les collections et environnements
 
-        url2 = 'https://www.postman.com/_api/ws/proxy'
-
         data_raw = {
             "service": "workspaces",
             "method": "GET",
             "path": f"/workspaces/{idwork}?include=elements"
         }
 
-        responsedisco = requests.post(url2, headers=headers, json=data_raw)
+        responsedisco = requests.post(url, headers=headers, json=data_raw)
 
         all_uuid = responsedisco.json()
 
