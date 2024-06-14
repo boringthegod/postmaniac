@@ -88,11 +88,6 @@ def main():
 
     urlsWorkspaces = list(set(urlsWorkspaces))
     urlsteam = list(set(urlsteam))
-    # Affiche la liste des URLs
-
-    #for lien in urls:
-    #    if "/workspace/" not in lien or "https://www.postman.com//" in lien:
-    #        urls.remove(lien)
 
     print("\n"+Fore.RED + str(len(urlsWorkspaces)) +" Workspaces found" + Style.RESET_ALL)
     # Print each URL with line numbers
