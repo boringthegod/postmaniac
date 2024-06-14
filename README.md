@@ -67,16 +67,6 @@ options:
 
 All the interesting information (whether in the environment values of the Postman Workspace, or in authentication values, in the headers or directly in the body of each request) is retrieved and **written in the scan.txt file**
 
-## Demo
 
-![](https://github.com/boringthegod/postmaniac/blob/master/assets/demo.gif)
-
-# Details
-
-## Disclaimer
-
-This tool is for educational purposes only, I am not responsible for its use.
-
-## License
 
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.fr.html)
