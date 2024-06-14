@@ -9,7 +9,7 @@ HORIZONTAL = "#ef5b25"
 VERTICAL = "#ef5b25"
 OTHER = "#10a4da"
 
-VERSION = "0.9.3"
+VERSION = "0.9.4"
 
 
 def _generate_logo() -> str:
@@ -48,15 +48,18 @@ def main():
 
     # ajout d'un argument 'query' pour spécifier le mot à chercher
     parser.add_argument('query', type=str,
-                        help='name of the target (example: tesla)')
+                        help='name *of the target (example: tesla)')
 
     # parse les arguments de ligne de commande
     args = parser.parse_args()
 
-    with open("scan.txt", "w") as f:
+    outputFile=f"scan-{args.query}.txt"
+
+    with open(outputFile, "a") as f:
         f.write("Rapport du scan de " + f"{args.query}")
         f.write("\n")
         f.write("\n")
+        f.close()
 
     url = 'https://www.postman.com/_api/ws/proxy'
     headers = {
@@ -98,8 +101,9 @@ def main():
                     else:
                         chelou = 'https://go.postman.co/workspace/' + item['document']['workspaces'][0][
                             'id'] + '/request/' + item['document']['id']
-                        with open("scan.txt", "a") as f:
+                        with open(outputFile, "a") as f:
                             f.write("requete chelou" + chelou)
+                            f.close()
                         continue
                 else:
                     # Passe à l'élément suivant si publisherHandle est manquant
@@ -141,7 +145,7 @@ def main():
     print(Fore.BLUE + str(nombreteam) + " Teams trouvées" + Style.RESET_ALL)
     print(urlsteam)
 
-    with open("scan.txt", "a") as f:
+    with open(outputFile, "a") as f:
         f.write("Workspaces :")
         f.write("\n")
         for worksp in urls:
@@ -154,7 +158,7 @@ def main():
         for team in urlsteam:
             f.write(team)
             f.write("\n")
-
+        f.close()
     # Discover des collections et env
     nombrecollection = 0
     nombreenv = 0
@@ -230,7 +234,7 @@ def main():
         else:
             urlcollec = []
 
-        with open("scan.txt", "a") as f:
+        with open(outputFile, "a") as f:
             f.write("\n")
             f.write("Sur le workspace :" + workurlcompl)
             f.write("\n")
@@ -239,13 +243,13 @@ def main():
             nombrecollection += 1
             urlcollecfinal = worku + "collection/" + urlc
             listeallcollec.append(urlcollecfinal)
-            with open("scan.txt", "a") as f:
+            with open(outputFile, "a") as f:
                 f.write("\n")
                 f.write("Collection " + urlcollecfinal)
-
+        f.close()
         urlenvapi = 'https://www.postman.com/_api/environment/'
 
-        with open("scan.txt", "a") as f:
+        with open(outputFile, "a") as f:
             f.write("\n")
             f.write("\n")
             f.write("Sur le workspace :" + workurlcompl)
@@ -258,12 +262,13 @@ def main():
             nameenv = environment['data']['name']
             env = environment['data']['values']
             nombreenv += 1
-            with open("scan.txt", "a") as f:
+            with open(outputFile, "a") as f:
                 f.write("\n")
                 f.write("Environnement " + nameenv + " : ")
                 f.write("\n")
                 f.write(str(env))
                 f.write("\n")
+        f.close()
     print('Terminé !')
 
     print("\n")
@@ -395,10 +400,9 @@ def main():
                     if nom['key'] in ["voucher", "username", "password", "email", "token", "accesskey", "creditCard",
                                       "creditcard", "phone", "address", "mobilephone", "cellPhone", "code",
                                       "authorization_code", "client_id", "client_secret", "name", "apikey",
-                                      "customer_email",
-                                      "api_key", "api_secret", "apisecret", "hash", "paypal_token", "identity",
-                                      "phoneHome",
-                                      "phoneOffice", "phoneMobile", "consumer_key", "consumer_secret", "access_token"]:
+                                      "customer_email", "api_key", "api_secret", "apisecret", "hash", "paypal_token", "identity",
+                                      "phoneHome", "phoneOffice", "phoneMobile", "consumer_key", "consumer_secret", 
+                                      "access_token"]:
                         bodylist.append(nom["value"])
                         # print(nom["value"])
 
@@ -437,7 +441,7 @@ def main():
     print(Fore.RED + str(len(bodylistnodoublon)) +
           " valeurs intéressantes en body trouvées" + Style.RESET_ALL)
 
-    with open("scan.txt", "a") as f:
+    with open(outputFile, "a") as f:
         f.write("Valeurs d'authentification trouvées :")
         f.write("\n")
         f.write("\n")
@@ -454,7 +458,8 @@ def main():
         f.write("\n")
         f.write("\n")
         f.write(str(bodylistnodoublon))
-
-
+        f.close()
+    print(Fore.GREEN + "\nSortie écrite en "+ outputFile)
 if __name__ == '__main__':
     main()
+
