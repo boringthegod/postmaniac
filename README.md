@@ -2,7 +2,7 @@
 
 Based on https://github.com/boringthegod/postmaniac 
 
-# Description
+## Description
 
 Postman OSINT tool to **extract creds, token, username, email & more from Postman Public Workspaces**.
 
@@ -11,7 +11,7 @@ Bonus:
 - No need to be authenticated
 - No API blocking / No rate-limit
 
-# Installation
+## Installation
 
 ```bash
 # clone the repo
@@ -21,7 +21,7 @@ $ git clone https://github.com/pdelteil/postmaniac.git
 $ cd postmaniac ; python3 setup.py install
 ```
 
-# Usage
+## Usage
 
 `python3 postmaniac keyword`
 
