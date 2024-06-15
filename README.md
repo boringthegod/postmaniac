@@ -11,15 +11,6 @@ Bonus:
 - No need to be authenticated
 - No API blocking / No rate-limit
 
-## Installation
-
-```bash
-# clone the repo
-$ git clone https://github.com/pdelteil/postmaniac.git
-
-# change the working directory to postmaniac
-$ cd postmaniac ; python3 setup.py install
-```
 
 ## Usage
 
