@@ -294,7 +294,7 @@ def main():
             description = requestresp['data']['description']
             preRequestScript = requestresp['data']['preRequestScript']
             #how to get pre and post scripts?
-            auth = requestresp['data']['auth']1
+            auth = requestresp['data']['auth']
             header = requestresp['data']['headerData']
             pattern = re.compile(r'^\{\{.*\}\}$')
             datamode = requestresp['data']['dataMode']
