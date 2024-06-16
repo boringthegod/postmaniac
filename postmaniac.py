@@ -235,18 +235,19 @@ def main():
         responsecoll = requests.get(urltrueapi, headers=headers)
         collection = responsecoll.json()
         #print(collection)
-
+    
+        #Folders
         owner = collection['data']['owner']
         order = collection['data']['order']
-        name = collection['data']['name']
-        desc = collection['data']['description']
-        print(f"{name}, {desc}")
+        folderName = collection['data']['name']
+        folderDesc = collection['data']['description']
+        print(f"\t{folderName}, {folderDesc}")
 
-        #folders of a collection
+        #subfolders of a collection
         folders_order = collection['data']['folders_order']        
 
-        for orde in folders_order:
-            urlsubord = urlApiFolder + owner + "-" + orde
+        for subfolder in folders_order:
+            urlsubord = urlApiFolder + owner + "-" + subfolder
             responsesub = requests.get(urlsubord, headers=headers)
             subcollection = responsesub.json()
             print(subcollection)
@@ -259,7 +260,7 @@ def main():
             folderAuth = subcollection['data']['auth']
             folderCreated = subcollection['data']['createdAt']
             folderUpdated = subcollection['data']['updatedAt']
-            print(f"{folderName},{folderDesc}")
+            print(f"\t{folderName},{folderDesc}")
 
             #finding subfolders (recursive)
             subsubfolders = subcollection['data']['folders_order']
@@ -274,10 +275,8 @@ def main():
             else:
                 pass
             order.extend(suborder)
-
-        reqtrouv += len(order)  
-        print(Fore.GREEN + str(reqtrouv) + " Scanned requests: " + Style.RESET_ALL+"\n")
-
+        reqtrouv = len(order)  
+        print(Fore.GREEN + f"\t{str(reqtrouv)}"+ " Requests found" + Style.RESET_ALL+"\n")
         pattern = re.compile(r'^\{\{.*\}\}$')
     
         #Requests per folder
@@ -294,19 +293,32 @@ def main():
             description = requestresp['data']['description']
             preRequestScript = requestresp['data']['preRequestScript']
             #how to get pre and post scripts?
-            auth = requestresp['data']['auth']
+
+            #Header 
             header = requestresp['data']['headerData']
             pattern = re.compile(r'^\{\{.*\}\}$')
-            datamode = requestresp['data']['dataMode']
             #removing values like {{..}}
             filtered_header_data = [item for item in header if
                                     item['key'] not in ['Content-Type', 'Accept', 'x-api-error-detail','x-api-appid'] and not pattern.match(item['value']) and item['value']]
-            #Auth
-            if auth is not None:
-                authlist.append(auth)
             if filtered_header_data:
                 headerlist.append(filtered_header_data)
+            headerlistUnique = []
+            headerlistUnique= get_unique_dicts(headerlist)
+            print(Fore.RED + str(len(headerlistUnique)) + " Intersting values in headers" + Style.RESET_ALL)
+
+            #Auth
+            auth = requestresp['data']['auth']
+
+            if auth is not None:
+                authlist.append(auth)
+
+            authlistUnique = []
+            authlistUnique = get_unique_dicts(authlist)
+            print(Fore.RED + str(len(authlistUnique)) + " Auth token ​​found" + Style.RESET_ALL)
+
             #body params
+            datamode = requestresp['data']['dataMode']
+
             if datamode == "raw":
                 body1 = requestresp['data']['rawModeData']
                 #checking for keys in body
@@ -318,6 +330,10 @@ def main():
                         pass
                 except json.JSONDecodeError as e:
                     continue
+            bodylistUnique = []
+            bodylistUnique = get_unique_dicts(bodylist)    
+            print(Fore.RED + str(len(bodylistUnique)) + " Intersting values in bodies" + Style.RESET_ALL)
+
             #more modes for body (form-data, x-www-form-urlencoded, raw, binary)
             #datamode params
             if datamode == "params" and requestresp['data']['data'] is not None and len(requestresp['data']["data"]) > 0:
@@ -326,17 +342,6 @@ def main():
                      if nom['key'] in keywords:
                         bodylist.append(nom['value'])
 
-    authlistUnique = []
-    authlistUnique = get_unique_dicts(authlist)
-    print(Fore.RED + str(len(authlistUnique)) + " Auth token ​​found" + Style.RESET_ALL)
-
-    headerlistUnique = []
-    headerlistUnique= get_unique_dicts(headerlist)
-    print(Fore.RED + str(len(headerlistUnique)) + " Intersting values in headers" + Style.RESET_ALL)
-
-    bodylistUnique = []
-    bodylistUnique = get_unique_dicts(bodylist)    
-    print(Fore.RED + str(len(bodylistUnique)) + " Intersting values in bodies" + Style.RESET_ALL)
 
 if __name__ == '__main__':
     main()
