@@ -10,26 +10,40 @@ The idea is to extract and show data and not to automatically detect sensitive i
 
 The main objective is to able to show and extract all data related to a workspace and children:
 
-Workspace
-  Workspace vars
-    Enviroment vars
-    Collections
-      Folder
-        Subfolder (optional)  
-          Requests 
-            Overview
-            Params
-            Authorization
-            Headers
-            Body
-              form-data
-              x-www-form-urlencoded
-              raw
-              binary
-              GraphQL
-            Scripts
-              Pre-Req
-              Post-Req
+**Workspace**
+- **Workspace vars**
+- **Environment vars**
+  - **Collections**
+    - **Folder**
+      - **Subfolder (optional)**
+        - **Requests**
+          - Overview
+          - Params
+          - Authorization
+            - Basic Auth
+            - Bearer Token
+            - JWT Bearer
+            - Digest Auth
+            - OAuth 1.0
+            - OAuth 2.0
+            - Hawk Authentication
+            - AWS Signature
+            - NTLM Authentication
+            - API Key
+            - Akamai EdgeGrid
+            - ASAP (Atlassian)
+          - Headers
+          - **Body**
+            - form-data
+            - x-www-form-urlencoded
+            - raw
+            - binary
+            - GraphQL
+          - **Scripts**
+            - Pre-Req
+            - Post-Req
+
+
         
 Also including Teams but this might be removed. 
 
