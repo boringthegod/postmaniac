@@ -6,11 +6,6 @@ Based on https://github.com/boringthegod/postmaniac
 
 Postman OSINT tool to **extract creds, token, username, email & more from Postman Public Workspaces**.
 
-Bonus:
-
-- No need to be authenticated
-- No API blocking / No rate-limit
-
 
 ## Usage
 
