@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "postmaniac"
-version = "0.9.3"
+version = "1.0.0"
 description = "Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces."
 readme = "README.md"
 requires-python = ">=3.0"
 dependencies = [
-  'colorama==0.4.6',
-  'requests==2.30.0'
+  'rich',
+  'requests'
 ]
 keywords = ["osint", "pentest", "cybersecurity","investigation", "lespireshat", "postman"]
 authors = [{ name = "Pierre Ceberio", email = "boringthegod@tutanota.com"}]

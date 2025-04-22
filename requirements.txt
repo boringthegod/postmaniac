@@ -1,3 +1,2 @@
-colorama==0.4.6
-requests==2.31.0
-string-color==1.2.3
+rich
+requests

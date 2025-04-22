@@ -1,460 +1,329 @@
+from __future__ import annotations
+
+import argparse
 import json
 import re
-from colorama import Fore, Back, Style
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import requests
-import argparse
-from stringcolor import *
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+from rich.text import Text
 
-HORIZONTAL = "#ef5b25"
-VERTICAL = "#ef5b25"
-OTHER = "#10a4da"
+# ──────────────────────────────────────────────────────────────────────────
+# CONFIGURATION
+# ──────────────────────────────────────────────────────────────────────────
 
-VERSION = "0.9.3"
+HORIZONTAL = "#ef5b25"   # orange
+OTHER      = "#10a4da"   # cyan
+VERSION    = "1.0.0"
+API_ENDPOINT = "https://www.postman.com/_api/ws/proxy"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0",
+    "Content-Type": "application/json",
+}
+OUTPUT_FILE = Path("scan.txt")
+console = Console()
+
+# ──────────────────────────────────────────────────────────────────────────
+# NETWORK LAYER WITH RETRIES
+# ──────────────────────────────────────────────────────────────────────────
+
+_session: Optional[requests.Session] = None
+
+def _get_session() -> requests.Session:
+    """Singleton *requests.Session* with automatic retries."""
+    global _session  # noqa: PLW0603
+    if _session is None:
+        retry = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET", "POST"],
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        _session = requests.Session()
+        _session.mount("https://", adapter)
+        _session.mount("http://", adapter)
+    return _session
 
 
-def _generate_logo() -> str:
-    # https://patorjk.com/software/taag/#p=display&h=2&f=Small%20Slant&t=postmaniac
-    BORING_URL = f"https://pierreceberio.com/"
-    VERSION_POSITON = 4
+def safe_request(method: str, url: str, **kwargs) -> Optional[requests.Response]:
+    kwargs.setdefault("timeout", 30)
+    try:
+        resp = _get_session().request(method, url, **kwargs)
+        resp.raise_for_status()
+        return resp
+    except requests.exceptions.RequestException as exc:  # noqa: BLE001
+        console.log(f"[red]⚠️  {method.upper()} {url} → {exc}[/]")
+        return None
 
-    _LOGO = """                      __                        _           
+# ──────────────────────────────────────────────────────────────────────────
+# RENDERING HELPERS
+# ──────────────────────────────────────────────────────────────────────────
+
+def _print_logo() -> None:
+    ascii_logo = Text(
+        """
+                     __                        _            
     ____  ____  _____/ /_____ ___  ____ _____  (_)___ ______
-   / __ \/ __ \/ ___/ __/ __ `__ \/ __ `/ __ \/ / __ `/ ___/
-  / /_/ / /_/ (__  ) /_/ / / / / / /_/ / / / / / /_/ / /__  
- / .___/\____/____/\__/_/ /_/ /_/\__,_/_/ /_/_/\__,_/\___/  
-/_/                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-    By: boring (https://pierreceberio.com)
-    """
-    _LOGO = _LOGO[:VERSION_POSITON] + \
-        cs(VERSION, OTHER).underline().bold() + \
-        _LOGO[VERSION_POSITON + len(VERSION):]
-
-    for char in "(/|,)⎜\\<`_-⎺":
-        _LOGO = _LOGO.replace(
-            char, str(cs(char, HORIZONTAL if char in "_-⎺" else VERTICAL).bold()))
-    return _LOGO.replace(BORING_URL.replace("/", str(cs("/", VERTICAL).bold())), str(cs(BORING_URL, OTHER).underline()))
+   / __ \ __ \ ___/ __/ __ `__ \/ __ `/ __ \/ / __ `/ ___/
+  / /_/ / /_/ (__  ) /_/ / / / / /_/ / / / / / / /_/ / /__  
+ / .___/\____/____/\__/ /_/ /_/  \__,_/_/ /_/_/\__,_/\___/  
+/_/                                                         
+        """,
+        style="bold",
+    )
+    console.print(Panel.fit(ascii_logo, border_style=HORIZONTAL, subtitle=f"v{VERSION}", subtitle_align="right"))
 
 
-def main():
-    LOGO = _generate_logo()
+def _progress(desc: str, total: int | None = None) -> Progress:
+    return Progress(
+        SpinnerColumn(),
+        TextColumn(f"[bold]{desc}[/]"),
+        BarColumn(bar_width=None),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+        transient=True,
+    )
 
-    print(LOGO)
-    urls = []
-    urlsteam = []
+# ──────────────────────────────────────────────────────────────────────────
+# FILE UTILITIES
+# ──────────────────────────────────────────────────────────────────────────
 
-    # création d'un objet ArgumentParser
-    parser = argparse.ArgumentParser(
-        description='Postman OSINT tool to extract creds, token, username, email & more from Postman Public Workspaces')
+def write_report(*lines: str) -> None:
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_FILE.open("a", encoding="utf-8") as fp:
+        fp.write("\n".join(lines) + "\n")
 
-    # ajout d'un argument 'query' pour spécifier le mot à chercher
-    parser.add_argument('query', type=str,
-                        help='name of the target (example: tesla)')
 
-    # parse les arguments de ligne de commande
-    args = parser.parse_args()
+def _json(resp: Optional[requests.Response]) -> Dict[str, Any]:
+    return resp.json() if resp else {}
 
-    with open("scan.txt", "w") as f:
-        f.write("Rapport du scan de " + f"{args.query}")
-        f.write("\n")
-        f.write("\n")
+# ──────────────────────────────────────────────────────────────────────────
+# DOMAIN LOGIC
+# ──────────────────────────────────────────────────────────────────────────
 
-    url = 'https://www.postman.com/_api/ws/proxy'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
-        'Content-Type': 'application/json',
-    }
-
-    data_raw = {
+def initial_search(query: str) -> tuple[list[str], list[str]]:
+    payload: Dict[str, Any] = {
         "service": "search",
         "method": "POST",
         "path": "/search-all",
         "body": {
-            "queryIndices": ["collaboration.workspace", "runtime.collection", "runtime.request", "adp.api", "flow.flow",
-                             "apinetwork.team"],
-            "queryText": f"{args.query}",
-            "size": 100,
+            "queryIndices": [
+                "collaboration.workspace",
+                "runtime.collection",
+                "runtime.request",
+                "adp.api",
+                "flow.flow",
+                "apinetwork.team",
+            ],
+            "queryText": query,
+            "size": 25,
             "from": 0,
             "requestOrigin": "srp",
             "mergeEntities": True,
-            "nonNestedRequests": True
-        }
+            "nonNestedRequests": True,
+        },
     }
+    workspaces: list[str] = []
+    teams: list[str] = []
 
-    for i in range(3):
-        response = requests.post(url, headers=headers, json=data_raw)
-        data = response.json()
-        data_raw["body"]["from"] += 100
+    with _progress("Reconnaissance", total=3) as prog:
+        t = prog.add_task("search", total=3)
+        for _ in range(3):
+            resp = safe_request("POST", API_ENDPOINT, headers=HEADERS, json=payload)
+            payload["body"]["from"] += 25
+            for item in _json(resp).get("data", []):
+                doc = item["document"]
+                tpe = doc.get("documentType")
+                if tpe == "request":
+                    ph = doc.get("publisherHandle")
+                    if ph and doc.get("workspaces"):
+                        slug = doc["workspaces"][0].get("slug")
+                        if slug:
+                            workspaces.append(f"https://www.postman.com/{ph}/workspace/{slug}/")
+                elif tpe == "team":
+                    teams.append(f"https://www.postman.com/{doc['publicHandle']}")
+                elif tpe == "workspace":
+                    workspaces.append(f"https://www.postman.com/{doc['publisherHandle']}/workspace/{doc['slug']}")
+            prog.advance(t)
 
-        for item in data['data']:
-            # Si l'élément est de type "request"
-            if item['document']['documentType'] == 'request':
-                if 'publisherHandle' in item['document'] and item['document']['publisherHandle']:
-                    if 'slug' in item['document']['workspaces'][0]:
-                        # Construit l'URL
-                        urlworkspace = 'https://www.postman.com/' + item['document'][
-                            'publisherHandle'] + '/workspace/' + \
-                            item['document']['workspaces'][0]['slug'] + '/'
-                        urls.append(urlworkspace)
-                    else:
-                        chelou = 'https://go.postman.co/workspace/' + item['document']['workspaces'][0][
-                            'id'] + '/request/' + item['document']['id']
-                        with open("scan.txt", "a") as f:
-                            f.write("requete chelou" + chelou)
-                        continue
-                else:
-                    # Passe à l'élément suivant si publisherHandle est manquant
-                    continue
-            if item['document']['documentType'] == 'team':
-                urlteam = 'https://www.postman.com/' + \
-                          item['document']['publicHandle']
-                urlsteam.append(urlteam)
-            if item['document']['documentType'] == 'workspace':
-                urlworkspace2 = 'https://www.postman.com/' + item['document']['publisherHandle'] + '/workspace/' + \
-                                item['document'][
-                                    'slug']
-                urls.append(urlworkspace2)
-        progress = (i + 1) / 3 * 100
+    workspaces = list({u for u in workspaces if "/workspace/" in u and "//" not in u.replace("https://", "")})
+    teams = list(set(teams))
+    write_report("Workspaces:", *workspaces, "", "Teams:", *teams, "")
+    return workspaces, teams
 
-        # affichage de la barre de chargement
-        bar_length = 60
-        filled_length = int(progress / 100 * bar_length)
-        bar = '=' * filled_length + '-' * (bar_length - filled_length)
-        print(
-            f'\rReconnaissance initiale : [{bar}] {progress:.1f}%', end='', flush=True)
 
-    urls = list(set(urls))
-    urlsteam = list(set(urlsteam))
-    # Affiche la liste des URLs
+def discover_elements(workspaces: list[str]) -> tuple[int, int, list[str]]:
+    coll_cnt = 0
+    env_cnt = 0
+    coll_urls: list[str] = []
 
-    for lien in urls:
-        if "/workspace/" not in lien or "https://www.postman.com//" in lien:
-            urls.remove(lien)
-
-    nombreworkspace = len(urls)
-    nombreteam = len(urlsteam)
-
-    print("\n")
-    print(Fore.RED + str(nombreworkspace) +
-          " Workspaces trouvés" + Style.RESET_ALL)
-    print(urls)
-    print("\n")
-    print(Fore.BLUE + str(nombreteam) + " Teams trouvées" + Style.RESET_ALL)
-    print(urlsteam)
-
-    with open("scan.txt", "a") as f:
-        f.write("Workspaces :")
-        f.write("\n")
-        for worksp in urls:
-            f.write(worksp)
-            f.write("\n")
-        f.write("\n")
-        f.write("\n")
-        f.write("Teams :")
-        f.write("\n")
-        for team in urlsteam:
-            f.write(team)
-            f.write("\n")
-
-    # Discover des collections et env
-    nombrecollection = 0
-    nombreenv = 0
-
-    listeallcollec = []
-
-    def progress_bar(current, total, message=''):
-        """
-        Prints the progress bar in a specified state (current/total)
-
-        The progress bar is 40 of length.
-        It seems that we can't pass it as a variable because
-        the format string doesnt like it.
-        If the size needs to change, make a for loop.
-        """
-        percent = (current*40)//total
-        print(f"{message} [{'#'*percent:40}]", end='\r')
-
-        # If the progress bar is finished we get out of the line
-        if current == total:
-            print("\n")
-
-    for o, worku in enumerate(urls, start=1):
-        if "https://www.postman.com//" in worku:
-            continue
-        message = f'Scan du workspace {o}/{len(urls)}'
-        progress_bar(o, len(urls), message)
-        workurlcompl = worku + "overview"
-        match_workspace = re.search(r'https://www.postman.com/([^/]+)/', worku)
-        match_workspacename = re.search(r'/workspace/([^/]+)/?$', worku)
-
-        worksp = match_workspace.group(1)
-        workspnam = match_workspacename.group(1)
-
-        apiurl = 'https://www.postman.com/_api/ws/proxy'
-
-        data_rawid = {
-            "service": "workspaces",
-            "method": "GET",
-            "path": f"/workspaces?handle={worksp}&slug={workspnam}"
-        }
-        # Trouver l'id du workspace
-
-        responseid = requests.post(apiurl, headers=headers, json=data_rawid)
-
-        iddiv = responseid.json()
-
-        if 'error' in iddiv:
-            continue
-
-        idwork = iddiv['data'][0]['id']
-
-        # Taper sur le workspace avec l'id pour decouvrir les collections et environnements
-
-        url2 = 'https://www.postman.com/_api/ws/proxy'
-
-        data_raw = {
-            "service": "workspaces",
-            "method": "GET",
-            "path": f"/workspaces/{idwork}?include=elements"
-        }
-
-        responsedisco = requests.post(url2, headers=headers, json=data_raw)
-
-        all_uuid = responsedisco.json()
-
-        if 'environments' in all_uuid['data']['elements']:
-            urlenv = all_uuid['data']['elements']['environments']
-        else:
-            urlenv = []
-        if 'collections' in all_uuid['data']['elements']:
-            urlcollec = all_uuid['data']['elements']['collections']
-        else:
-            urlcollec = []
-
-        with open("scan.txt", "a") as f:
-            f.write("\n")
-            f.write("Sur le workspace :" + workurlcompl)
-            f.write("\n")
-
-        for urlc in urlcollec:
-            nombrecollection += 1
-            urlcollecfinal = worku + "collection/" + urlc
-            listeallcollec.append(urlcollecfinal)
-            with open("scan.txt", "a") as f:
-                f.write("\n")
-                f.write("Collection " + urlcollecfinal)
-
-        urlenvapi = 'https://www.postman.com/_api/environment/'
-
-        with open("scan.txt", "a") as f:
-            f.write("\n")
-            f.write("\n")
-            f.write("Sur le workspace :" + workurlcompl)
-
-        for urle in urlenv:
-            urlenvfinal = worku + "environment/" + urle
-            apienvurl = urlenvapi + urle
-            responseapi = requests.get(apienvurl, headers=headers)
-            environment = responseapi.json()
-            nameenv = environment['data']['name']
-            env = environment['data']['values']
-            nombreenv += 1
-            with open("scan.txt", "a") as f:
-                f.write("\n")
-                f.write("Environnement " + nameenv + " : ")
-                f.write("\n")
-                f.write(str(env))
-                f.write("\n")
-    print('Terminé !')
-
-    print("\n")
-    print(Fore.GREEN + str(nombrecollection) +
-          " Collections trouvées" + Style.RESET_ALL)
-    print(Fore.GREEN + str(nombreenv) +
-          " Valeurs d'environnements trouvées" + Style.RESET_ALL)
-    print("\n")
-    # print(listeallcollec)
-
-    # Discover et scan des requetes de chaque collections
-
-    # for coll in listeallcollec:
-    #     print(coll)
-
-    reqtrouv = 0
-
-    authlist = []
-    headerlist = []
-    bodylist = []
-
-    for p, coll in enumerate(listeallcollec, start=1):
-        messagescanco = f'Scan de la collection {p}/{len(listeallcollec)}'
-        progress_bar(p, len(listeallcollec), messagescanco)
-        segments = coll.split('/')
-        idseg = segments[-1]
-        urltrueapi = 'https://www.postman.com/_api/collection/' + idseg
-
-        responsecoll = requests.get(urltrueapi, headers=headers)
-
-        # print(urltrueapi)
-        collection = responsecoll.json()
-        # print(collection)
-        owner = collection['data']['owner']
-        order = collection['data']['order']
-        folders_order = collection['data']['folders_order']
-
-        for orde in folders_order:
-            urlsubord = "https://www.postman.com/_api/folder/" + owner + "-" + orde
-            responsesub = requests.get(urlsubord, headers=headers)
-            subcollection = responsesub.json()
-            if 'error' in subcollection:
+    with _progress("Découverte", total=len(workspaces)) as prog:
+        t = prog.add_task("discover", total=len(workspaces))
+        for ws in workspaces:
+            m_pub = re.search(r"https://www.postman.com/([^/]+)/", ws)
+            m_slug = re.search(r"/workspace/([^/]+)/?$", ws)
+            if not (m_pub and m_slug):
+                prog.advance(t)
                 continue
-            suborder = subcollection['data']['order']
-            subsubfolders = subcollection['data']['folders_order']
-            if len(subsubfolders) != 0:
-                for subsubfolder in subsubfolders:
-                    urlsubsubord = "https://www.postman.com/_api/folder/" + owner + "-" + subsubfolder
-                    responsesubsub = requests.get(
-                        urlsubsubord, headers=headers)
-                    subsubcollection = responsesubsub.json()
-                    subsuborder = subsubcollection['data']['order']
-                    order.extend(subsuborder)
-            else:
-                pass
-            order.extend(suborder)
+            pub, slug = m_pub.group(1), m_slug.group(1)
+            wid_resp = safe_request("POST", API_ENDPOINT, headers=HEADERS, json={
+                "service": "workspaces", "method": "GET", "path": f"/workspaces?handle={pub}&slug={slug}",
+            })
+            wid_data = _json(wid_resp).get("data", [])
+            if not wid_data:
+                prog.advance(t)
+                continue
+            wid = wid_data[0]["id"]
+            el_resp = safe_request("POST", API_ENDPOINT, headers=HEADERS, json={
+                "service": "workspaces", "method": "GET", "path": f"/workspaces/{wid}?include=elements",
+            })
+            el = _json(el_resp).get("data", {}).get("elements", {})
+            env_ids = el.get("environments", [])
+            col_ids = el.get("collections", [])
 
-        reqtrouv += len(order)
+            env_cnt += len(env_ids)
+            for cid in col_ids:
+                coll_cnt += 1
+                url = f"{ws}collection/{cid}"
+                coll_urls.append(url)
+                write_report(f"Collection {url}")
+            for eid in env_ids:
+                write_report(f"Environnement {eid}")
+            prog.advance(t)
+    return coll_cnt, env_cnt, coll_urls
 
-        urlrequest = 'https://www.postman.com/_api/request/'
-        pattern = re.compile(r'^\{\{.*\}\}$')
 
-        def find_croustillant(datacr):
-            if isinstance(datacr, dict):
-                for key, value in datacr.items():
-                    if key in ["voucher", "username", "password", "email", "token", "accesskey", "creditCard",
-                               "creditcard",
-                               "phone", "address", "mobilephone", "cellPhone", "code", "authorization_code",
-                               "client_id",
-                               "client_secret", "name", "apikey", "customer_email", "api_key", "api_secret",
-                               "apisecret",
-                               "hash", "paypal_token", "identity", "phoneHome", "phoneOffice", "phoneMobile",
-                               "consumer_key",
-                               "consumer_secret", "access_token"]:
-                        # print(value)
-                        bodylist.append(value)
-                    else:
-                        find_croustillant(value)
-            elif isinstance(datacr, list):
-                for itemcr in datacr:
-                    find_croustillant(itemcr)
+def scan_collections(urls: list[str]) -> tuple[int, list[Any], list[Any], list[Any]]:
+    req_total = 0
+    auths: list[Any] = []
+    headers_found: list[Any] = []
+    bodies_found: list[Any] = []
+    placeholder = re.compile(r"^\{\{.*\}\}$")
 
-        for request in order:
-            urlrequestfull = urlrequest + owner + "-" + request
-            requestresponse = requests.get(urlrequestfull, headers=headers)
+    def dedupe(lst: List[Any]) -> List[Any]:
+        seen: set[str] = set()
+        out: list[Any] = []
+        for el in lst:
+            s = json.dumps(el, sort_keys=True)
+            if s not in seen:
+                seen.add(s)
+                out.append(el)
+        return out
 
-            requestresp = requestresponse.json()
-            urlreq = requestresp['data']['url']
-            auth = requestresp['data']['auth']
-            header = requestresp['data']['headerData']
-            pattern = re.compile(r'^\{\{.*\}\}$')
-            datamode = requestresp['data']['dataMode']
-            filtered_header_data = [item for item in header if
-                                    item['key'] not in ['Content-Type', 'Accept', 'x-api-error-detail',
-                                                        'x-api-appid'] and not pattern.match(item['value']) and item[
-                                        'value']]
-            if auth is not None:
-                # if auth["type"] == "digest":
-                #     for element in auth['digest']:
-                #         if element['value'] and not pattern.match(element['value']):
-                #             print("Sur l'url : " + urlreq)
-                #             print(auth)
-                # else:
-                #     print(urlrequestfull)
-                # print("Sur l'url : " + urlreq)
-                # print(auth)
-                authlist.append(auth)
-            if filtered_header_data:
-                # print("Sur l'url : " + urlreq)
-                # print(filtered_header_data)
-                headerlist.append(filtered_header_data)
-            if datamode == "raw":
-                body1 = requestresp['data']['rawModeData']
+    console.print("\n[bold]Analyse des collections…[/]")
+    with _progress("Analyse", total=len(urls)) as prog:
+        t = prog.add_task("analyse", total=len(urls))
+        for curl in urls:
+            cid = curl.rstrip("/").split("/")[-1]
+            c_resp = safe_request("GET", f"https://www.postman.com/_api/collection/{cid}", headers=HEADERS)
+            c_data = _json(c_resp).get("data")
+            if not c_data:
+                prog.advance(t)
+                continue
+            owner = c_data["owner"]
+            order: List[str] = list(c_data["order"])
 
-                try:
-                    if body1 is not None and body1.strip():
-                        parsed_data = json.loads(body1)
-                        find_croustillant(parsed_data)
-                    else:
-                        pass
-                except json.JSONDecodeError as e:
+            def expand(fid: str):
+                f_resp = safe_request("GET", f"https://www.postman.com/_api/folder/{owner}-{fid}", headers=HEADERS)
+                f_data = _json(f_resp).get("data", {})
+                order.extend(f_data.get("order", []))
+                for sub in f_data.get("folders_order", []):
+                    expand(sub)
+
+            for fid in c_data.get("folders_order", []):
+                expand(fid)
+
+            req_total += len(order)
+            for rid in order:
+                r_resp = safe_request("GET", f"https://www.postman.com/_api/request/{owner}-{rid}", headers=HEADERS)
+                r_data = _json(r_resp).get("data")
+                if not r_data:
                     continue
-            if datamode == "params" and requestresp['data']['data'] is not None and len(
-                    requestresp['data']["data"]) > 0:
+                if r_data.get("auth"):
+                    auths.append(r_data["auth"])
+                for h in r_data.get("headerData", []):
+                    if h["key"] not in {"Content-Type", "Accept", "x-api-error-detail", "x-api-appid"} and h["value"] and not placeholder.match(h["value"]):
+                        headers_found.append(h)
 
-                datas = requestresp['data']["data"]
-                for nom in datas:
-                    # print(urlrequestfull)
-                    if nom['key'] in ["voucher", "username", "password", "email", "token", "accesskey", "creditCard",
-                                      "creditcard", "phone", "address", "mobilephone", "cellPhone", "code",
-                                      "authorization_code", "client_id", "client_secret", "name", "apikey",
-                                      "customer_email",
-                                      "api_key", "api_secret", "apisecret", "hash", "paypal_token", "identity",
-                                      "phoneHome",
-                                      "phoneOffice", "phoneMobile", "consumer_key", "consumer_secret", "access_token"]:
-                        bodylist.append(nom["value"])
-                        # print(nom["value"])
+                def hunt(x: Any):
+                    if isinstance(x, dict):
+                        for k, v in x.items():
+                            if k.lower() in {"voucher","username","password","email","token","accesskey","creditcard","phone","address","mobilephone","cellphone","code","authorization_code","client_id","client_secret","name","apikey","customer_email","api_key","api_secret","apisecret","hash","paypal_token","identity","phonehome","phoneoffice","phonemobile","consumer_key","consumer_secret","access_token"}:
+                                bodies_found.append(v)
+                            else:
+                                hunt(v)
+                    elif isinstance(x, list):
+                        for i in x:
+                            hunt(i)
+                mode = r_data.get("dataMode")
+                if mode == "raw" and (raw := r_data.get("rawModeData")):
+                    try:
+                        hunt(json.loads(raw))
+                    except json.JSONDecodeError:
+                        pass
+                elif mode == "params":
+                    for p in r_data.get("data", []):
+                        if p["key"] in {"voucher","username","password","email","token","accesskey","creditcard","phone","address","mobilephone","cellphone","code","authorization_code","client_id","client_secret","name","apikey","customer_email","api_key","api_secret","apisecret","hash","paypal_token","identity","phonehome","phoneoffice","phonemobile","consumer_key","consumer_secret","access_token"}:
+                            bodies_found.append(p["value"])
+            prog.advance(t)
 
-    # Nettoyage des doublons
-    authlistnodoublon = []
-    unique_set = set()
+    return req_total, dedupe(auths), dedupe(headers_found), dedupe(bodies_found)
 
-    for d in authlist:
-        s = json.dumps(d, sort_keys=True)
-        if s not in unique_set:
-            unique_set.add(s)
-            authlistnodoublon.append(json.loads(s))
+# ──────────────────────────────────────────────────────────────────────────
+# MAIN ENTRY POINT
+# ──────────────────────────────────────────────────────────────────────────
 
-    headerlistnodoublon = []
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Postman OSINT scanner (Rich + retries)")
+    parser.add_argument("query", help="Target name, e.g. tesla")
+    args = parser.parse_args()
 
-    for d in headerlist:
-        s = json.dumps(d, sort_keys=True)
-        if s not in unique_set:
-            unique_set.add(s)
-            headerlistnodoublon.append(json.loads(s))
+    OUTPUT_FILE.write_text(f"Rapport du scan de {args.query}\n\n", encoding="utf-8")
 
-    bodylistnodoublon = []
+    _print_logo()
+    console.rule(style=OTHER)
 
-    for d in bodylist:
-        s = json.dumps(d, sort_keys=True)
-        if s not in unique_set:
-            unique_set.add(s)
-            bodylistnodoublon.append(json.loads(s))
+    workspaces, teams = initial_search(args.query)
+    console.print(f"[bold red]{len(workspaces)} Workspaces trouvés[/]  |  [bold blue]{len(teams)} Teams trouvées[/]")
 
-    print(Fore.GREEN + str(reqtrouv) + " Requêtes scannées :" + Style.RESET_ALL)
-    print("\n")
-    print(Fore.RED + str(len(authlistnodoublon)) +
-          " valeurs d'authentification trouvées" + Style.RESET_ALL)
-    print(Fore.RED + str(len(headerlistnodoublon)) +
-          " valeurs intéressantes en headers trouvées" + Style.RESET_ALL)
-    print(Fore.RED + str(len(bodylistnodoublon)) +
-          " valeurs intéressantes en body trouvées" + Style.RESET_ALL)
+    coll_cnt, env_cnt, coll_urls = discover_elements(workspaces)
+    console.print(f"\n[bold green]{coll_cnt} Collections[/] – [bold green]{env_cnt} Environnements[/]")
 
-    with open("scan.txt", "a") as f:
-        f.write("Valeurs d'authentification trouvées :")
-        f.write("\n")
-        f.write("\n")
-        f.write(str(authlistnodoublon))
-        f.write("\n")
-        f.write("\n")
-        f.write("Valeurs intéressantes en headers trouvées :")
-        f.write("\n")
-        f.write("\n")
-        f.write(str(headerlistnodoublon))
-        f.write("\n")
-        f.write("\n")
-        f.write("Valeurs intéressantes en body trouvées :")
-        f.write("\n")
-        f.write("\n")
-        f.write(str(bodylistnodoublon))
+    if not coll_urls:
+        console.print("Aucune collection à analyser.", style="yellow")
+        return
+
+    req_total, auths, headers, bodies = scan_collections(coll_urls)
+    console.print(
+        f"\n[bold green]{req_total} requêtes analysées[/] – "
+        f"[bold red]{len(auths)} auths[/], "
+        f"[bold red]{len(headers)} headers[/], "
+        f"[bold red]{len(bodies)} bodies[/] détectés"
+    )
+
+    write_report(
+        "Auths:", json.dumps(auths, indent=2),
+        "", "Headers:", json.dumps(headers, indent=2),
+        "", "Bodies:", json.dumps(bodies, indent=2)
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
